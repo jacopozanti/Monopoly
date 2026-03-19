@@ -64,11 +64,12 @@ function App({ socket, name, server }: { socket: Socket; name: string; server: S
             return [obj.posistion ?? 0, obj];
         })
     );
-    if (server !== undefined) {
+    useEffect(() => {
+        if (server === undefined) return;
         server.RenderLogs((array) => {
             setServerLogs([...array]);
         });
-    }
+    }, [server]);
     useEffect(() => {
         // Live reference to latest settings via ref (replaces cookie polling setInterval)
         const getSettings = () => settingsRef.current;
