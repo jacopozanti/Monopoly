@@ -70,7 +70,7 @@ function PlayersTab(props: PlayersTabPropsExt) {
                 </h3>
                 {current !== undefined ? (
                     <>
-                        <table>
+                        <table><tbody>
                             <tr>
                                 <td>balance</td>
                                 <td>{current.balance}</td>
@@ -101,7 +101,7 @@ function PlayersTab(props: PlayersTabPropsExt) {
                                 <td>is in jail</td>
                                 <td>{current.isInJail.toString()}</td>
                             </tr>
-                        </table>
+                        </tbody></table>
                         {current.properties.length === 0 ? (
                             <p></p>
                         ) : (

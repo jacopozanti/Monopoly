@@ -380,12 +380,12 @@ export default function Home() {
                             {server !== undefined ? (
                                 <>
                                     <p>server is already running, check the console.</p>
-                                    <table>
+                                    <table><tbody>
                                         <tr>
                                             <td>Code</td>
                                             <td style={{ userSelect: "all" }}>{server.code}</td>
                                         </tr>
-                                    </table>
+                                    </tbody></table>
                                     <center>
                                         {" "}
                                         <button
@@ -406,7 +406,7 @@ export default function Home() {
                             ) : (
                                 <>
                                     <p>all the servers logs will can be seen in the console</p>
-                                    <table>
+                                    <table><tbody>
                                         <tr>
                                             <td>PlayersCount</td>
                                             <td>
@@ -421,7 +421,7 @@ export default function Home() {
                                                 />
                                             </td>
                                         </tr>
-                                    </table>
+                                    </tbody></table>
                                     <center>
                                         {" "}
                                         <button

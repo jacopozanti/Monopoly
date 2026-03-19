@@ -213,7 +213,7 @@ export default function TradeTable({ tradeObj: tradeObjRaw, socket, players, myT
                                     {players.filter((v) => v.id === (tradeObj as GameTrading).turnPlayer.id)[0].username}
                                 </h2>
                             </h5>
-                            <table>
+                            <table><tbody>
                                 <tr>
                                     <td>Balance</td>
                                     <td>{tradeObj.turnPlayer.balance} M</td>
@@ -269,7 +269,7 @@ export default function TradeTable({ tradeObj: tradeObjRaw, socket, players, myT
                                 ) : (
                                     <></>
                                 )}
-                            </table>
+                            </tbody></table>
                         </div>
                         <div className="player">
                             <h5>
@@ -278,7 +278,7 @@ export default function TradeTable({ tradeObj: tradeObjRaw, socket, players, myT
                                     {players.filter((v) => v.id === (tradeObj as GameTrading).againstPlayer.id)[0].username}
                                 </h2>
                             </h5>
-                            <table>
+                            <table><tbody>
                                 <tr>
                                     <td>Balance</td>
                                     <td>{tradeObj.againstPlayer.balance} M</td>
@@ -336,7 +336,7 @@ export default function TradeTable({ tradeObj: tradeObjRaw, socket, players, myT
                                 ) : (
                                     <></>
                                 )}
-                            </table>
+                            </tbody></table>
                         </div>
                     </div>
                     <div className="flexchild"></div>
