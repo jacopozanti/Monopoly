@@ -6,8 +6,8 @@ import MonopolyNav, { MonopolyNavRef } from "../../components/ingame/nav.tsx";
 import MonopolyGame, { MonopolyGameRef } from "../../components/ingame/game.tsx";
 import NotifyElement, { NotificatorRef } from "../../components/notificator.tsx";
 import monopolyJSON from "../../assets/monopoly.json";
-import { MonopolySettings, MonopolyModes, historyAction, history, GameTrading, MonopolyMode } from "../../assets/types.ts";
-import { CookieManager } from "../../assets/cookieManager.ts";
+import { MonopolyModes, historyAction, history, GameTrading, MonopolyMode } from "../../assets/types.ts";
+import { useSettings } from "../../contexts/SettingsContext.tsx";
 function App({ socket, name, server }: { socket: Socket; name: string; server: Server | undefined }) {
     const [clients, SetClients] = useState<Map<string, Player>>(new Map());
     const players = Array.from(clients.values());
@@ -17,7 +17,9 @@ function App({ socket, name, server }: { socket: Socket; name: string; server: S
     const [gameStartedDisplay, SetGameStartedDisplay] = useState<boolean>(false);
     const [imReady, SetReady] = useState<boolean>(false);
     const [selectedMode, SetMode] = useState<MonopolyMode>(MonopolyModes[0]);
-    const [globalSettings, SetSettings] = useState<MonopolySettings>();
+    const { settings: globalSettings } = useSettings();
+    const settingsRef = useRef(globalSettings);
+    settingsRef.current = globalSettings;
     const [mainTheme, SetTheme] = useState(new Audio("./main-theme.mp3"));
     const [startTIme, SetStartTime] = useState<Date>(new Date());
     const [histories, SetHistories] = useState<Array<historyAction>>([]);
@@ -37,16 +39,6 @@ function App({ socket, name, server }: { socket: Socket; name: string; server: S
         SetTheme(mainTheme);
         SetStartTime(new Date());
     }, [gameStartedDisplay]);
-
-    useEffect(() => {
-        const settings_interval = setInterval(() => {
-            const parsedCookie = JSON.parse(decodeURIComponent(CookieManager.get("monopolySettings") as string))["monopolySettings"];
-            SetSettings(parsedCookie);
-        }, 1000);
-        return () => {
-            clearInterval(settings_interval);
-        };
-    }, [document.cookie]);
 
     useEffect(() => {
         if (globalSettings !== undefined) {
@@ -75,11 +67,8 @@ function App({ socket, name, server }: { socket: Socket; name: string; server: S
         });
     }
     useEffect(() => {
-        let settings: MonopolySettings | undefined = undefined;
-
-        const settings_interval = setInterval(() => {
-            settings = JSON.parse(decodeURIComponent(CookieManager.get("monopolySettings") as string))["monopolySettings"];
-        }, 1000);
+        // Live reference to latest settings via ref (replaces cookie polling setInterval)
+        const getSettings = () => settingsRef.current;
 
         function mouseMove(e: MouseEvent) {
             const _pos = { x: e.clientX, y: e.clientY };
@@ -155,7 +144,7 @@ function App({ socket, name, server }: { socket: Socket; name: string; server: S
                 firstPosition = _xplayer.position;
                 _xplayer.position += 1;
                 var audio = new Audio("./step2.mp3");
-                audio.volume = 0.1 * ((settings?.audio[1] ?? 100) / 100) * ((settings?.audio[0] ?? 100) / 100);
+                audio.volume = 0.1 * ((getSettings()?.audio[1] ?? 100) / 100) * ((getSettings()?.audio[0] ?? 100) / 100);
                 audio.loop = false;
                 audio.play();
                 element.style.animation = "jumpstreet 0.35s cubic-bezier(.26,1.5,.65,1.02)";
@@ -163,18 +152,18 @@ function App({ socket, name, server }: { socket: Socket; name: string; server: S
                     if (i < sum_moves) {
                         i += 1;
                         var audio = new Audio("./step2.mp3");
-                        audio.volume = 1 * ((settings?.audio[1] ?? 100) / 100) * ((settings?.audio[0] ?? 100) / 100);
+                        audio.volume = 1 * ((getSettings()?.audio[1] ?? 100) / 100) * ((getSettings()?.audio[0] ?? 100) / 100);
                         audio.loop = false;
                         audio.play();
                         _xplayer.position = (_xplayer.position + (adding ? 1 : -1)) % 40;
                         if (_xplayer.position == 0 && get200whengo) {
                             _xplayer.balance += 200;
                             var audio = new Audio("./moneyplus.mp3");
-                            audio.volume = 1 * ((settings?.audio[1] ?? 100) / 100) * ((settings?.audio[0] ?? 100) / 100);
+                            audio.volume = 1 * ((getSettings()?.audio[1] ?? 100) / 100) * ((getSettings()?.audio[0] ?? 100) / 100);
                             audio.loop = false;
                             audio.play();
                             if (_xplayer.id === socket.id) {
-                                if (settings !== undefined && settings.notifications === true)
+                                if (getSettings() !== undefined && getSettings()!.notifications === true)
                                     notifyRef.current?.message(`${200} of money is added to the account`, "info", 2, () => {}, false);
                                 engineRef.current?.applyAnimation(2);
                             }
@@ -190,12 +179,12 @@ function App({ socket, name, server }: { socket: Socket; name: string; server: S
 
                             if (!addedMoney && firstPosition > _xplayer.position && get200whengo) {
                                 var audio = new Audio("./moneyplus.mp3");
-                                audio.volume = 1 * ((settings?.audio[1] ?? 100) / 100) * ((settings?.audio[0] ?? 100) / 100);
+                                audio.volume = 1 * ((getSettings()?.audio[1] ?? 100) / 100) * ((getSettings()?.audio[0] ?? 100) / 100);
                                 audio.loop = false;
                                 audio.play();
                                 _xplayer.balance += 200;
                                 if (_xplayer.id === socket.id) {
-                                    if (settings !== undefined && settings.notifications === true)
+                                    if (getSettings() !== undefined && getSettings()!.notifications === true)
                                         notifyRef.current?.message(`${200} of money is added to the account`, "info", 2, () => {}, false);
                                     engineRef.current?.applyAnimation(2);
                                 }
@@ -289,7 +278,7 @@ function App({ socket, name, server }: { socket: Socket; name: string; server: S
             if (x !== undefined && JSON.stringify(x.properties) != JSON.stringify(args.pJson.properties)) {
                 // sound part - other player part
                 var audio = new Audio("./buying1.mp3");
-                audio.volume = 0.5 * ((settings?.audio[1] ?? 100) / 100) * ((settings?.audio[0] ?? 100) / 100);
+                audio.volume = 0.5 * ((getSettings()?.audio[1] ?? 100) / 100) * ((getSettings()?.audio[0] ?? 100) / 100);
                 audio.loop = false;
                 audio.play();
             }
@@ -491,7 +480,7 @@ function App({ socket, name, server }: { socket: Socket; name: string; server: S
                 ),
             ]);
             var audio = new Audio("./rolling.mp3");
-            audio.volume = ((settings?.audio[1] ?? 100) / 100) * ((settings?.audio[0] ?? 100) / 100);
+            audio.volume = ((getSettings()?.audio[1] ?? 100) / 100) * ((getSettings()?.audio[0] ?? 100) / 100);
             audio.loop = false;
             audio.play();
             // const sumTimes = args.listOfNums[0] + args.listOfNums[1];
@@ -505,7 +494,7 @@ function App({ socket, name, server }: { socket: Socket; name: string; server: S
                             xplayer.position = 10;
                             xplayer.isInJail = true;
                             var audio = new Audio("./jail.mp3");
-                            audio.volume = 0.5 * ((settings?.audio[1] ?? 100) / 100) * ((settings?.audio[0] ?? 100) / 100);
+                            audio.volume = 0.5 * ((getSettings()?.audio[1] ?? 100) / 100) * ((getSettings()?.audio[0] ?? 100) / 100);
                             audio.loop = false;
                             audio.play();
                             xplayer.jailTurnsRemaining = 3;
@@ -533,7 +522,7 @@ function App({ socket, name, server }: { socket: Socket; name: string; server: S
                                 onResponse: (b, info) => {
                                     var time_till_free = 0;
                                     if (b === "buy") {
-                                        if (settings !== undefined && settings.notifications === true)
+                                        if (getSettings() !== undefined && getSettings()!.notifications === true)
                                             notifyRef.current?.message(
                                                 `${(proprety?.price ?? 0) * 1} of money is deducted from the account`,
                                                 "info",
@@ -549,7 +538,7 @@ function App({ socket, name, server }: { socket: Socket; name: string; server: S
                                             group: propretyMap.get(localPlayer.position)?.group ?? "",
                                         });
                                         var audio = new Audio("./buying1.mp3");
-                                        audio.volume = 0.5 * ((settings?.audio[1] ?? 100) / 100) * ((settings?.audio[0] ?? 100) / 100);
+                                        audio.volume = 0.5 * ((getSettings()?.audio[1] ?? 100) / 100) * ((getSettings()?.audio[0] ?? 100) / 100);
                                         audio.loop = false;
                                         audio.play();
 
@@ -559,7 +548,7 @@ function App({ socket, name, server }: { socket: Socket; name: string; server: S
                                         );
                                     } else if (b === "advance-buy") {
                                         var audio = new Audio("./buying1.mp3");
-                                        audio.volume = 0.5 * ((settings?.audio[1] ?? 100) / 100) * ((settings?.audio[0] ?? 100) / 100);
+                                        audio.volume = 0.5 * ((getSettings()?.audio[1] ?? 100) / 100) * ((getSettings()?.audio[0] ?? 100) / 100);
                                         audio.loop = false;
                                         audio.play();
                                         const propId = Array.from(new Map(localPlayer.properties.map((v, i) => [i, v])).entries()).filter(
@@ -574,7 +563,7 @@ function App({ socket, name, server }: { socket: Socket; name: string; server: S
                                         localPlayer.properties[propId].count = _info.state === 5 ? "h" : _info.state;
 
                                         if (_info.state === 5) {
-                                            if (settings !== undefined && settings.notifications === true)
+                                            if (getSettings() !== undefined && getSettings()!.notifications === true)
                                                 notifyRef.current?.message(
                                                     `${proprety.ohousecost ?? 0} of money is deducted from the account`,
                                                     "info",
@@ -585,7 +574,7 @@ function App({ socket, name, server }: { socket: Socket; name: string; server: S
                                             localPlayer.balance -= proprety.ohousecost ?? 0;
                                             engineRef.current?.applyAnimation(1);
                                         } else {
-                                            if (settings !== undefined && settings.notifications === true)
+                                            if (getSettings() !== undefined && getSettings()!.notifications === true)
                                                 notifyRef.current?.message(
                                                     `${proprety.housecost ?? 0} of money is deducted from the account`,
                                                     "info",
@@ -626,7 +615,7 @@ function App({ socket, name, server }: { socket: Socket; name: string; server: S
                                                     } else if (prp.count === "h") {
                                                         payment_ammount = (proprety?.multpliedrent ?? [0, 0, 0, 0, 0])[4] ?? 0;
                                                     }
-                                                    if (settings !== undefined && settings.notifications === true)
+                                                    if (getSettings() !== undefined && getSettings()!.notifications === true)
                                                         notifyRef.current?.message(
                                                             `${payment_ammount} of money is deducted from the account`,
                                                             "info",
@@ -635,7 +624,7 @@ function App({ socket, name, server }: { socket: Socket; name: string; server: S
                                                             false
                                                         );
                                                     var audio = new Audio("./moneyminus.mp3");
-                                                    audio.volume = ((settings?.audio[1] ?? 100) / 100) * ((settings?.audio[0] ?? 100) / 100);
+                                                    audio.volume = ((getSettings()?.audio[1] ?? 100) / 100) * ((getSettings()?.audio[0] ?? 100) / 100);
                                                     audio.loop = false;
                                                     audio.play();
                                                     if (prp.morgage === undefined || (prp.morgage !== undefined && prp.morgage === false))
@@ -673,7 +662,7 @@ function App({ socket, name, server }: { socket: Socket; name: string; server: S
 
                                         if (proprety?.id === "incometax") {
                                             localPlayer.balance -= 200;
-                                            if (settings !== undefined && settings.notifications === true)
+                                            if (getSettings() !== undefined && getSettings()!.notifications === true)
                                                 notifyRef.current?.message(
                                                     `${200} of money is deducted from the account`,
                                                     "info",
@@ -682,7 +671,7 @@ function App({ socket, name, server }: { socket: Socket; name: string; server: S
                                                     false
                                                 );
                                             var audio = new Audio("./moneyminus.mp3");
-                                            audio.volume = ((settings?.audio[1] ?? 100) / 100) * ((settings?.audio[0] ?? 100) / 100);
+                                            audio.volume = ((getSettings()?.audio[1] ?? 100) / 100) * ((getSettings()?.audio[0] ?? 100) / 100);
                                             audio.loop = false;
                                             audio.play();
                                             engineRef.current?.applyAnimation(1);
@@ -693,7 +682,7 @@ function App({ socket, name, server }: { socket: Socket; name: string; server: S
                                         }
                                         if (proprety?.id === "luxerytax") {
                                             localPlayer.balance -= 100;
-                                            if (settings !== undefined && settings.notifications === true)
+                                            if (getSettings() !== undefined && getSettings()!.notifications === true)
                                                 notifyRef.current?.message(
                                                     `${100} of money is deducted from the account`,
                                                     "info",
@@ -702,7 +691,7 @@ function App({ socket, name, server }: { socket: Socket; name: string; server: S
                                                     false
                                                 );
                                             var audio = new Audio("./moneyminus.mp3");
-                                            audio.volume = ((settings?.audio[1] ?? 100) / 100) * ((settings?.audio[0] ?? 100) / 100);
+                                            audio.volume = ((getSettings()?.audio[1] ?? 100) / 100) * ((getSettings()?.audio[0] ?? 100) / 100);
                                             audio.loop = false;
                                             audio.play();
                                             engineRef.current?.applyAnimation(1);
@@ -712,7 +701,7 @@ function App({ socket, name, server }: { socket: Socket; name: string; server: S
                                             );
                                         }
                                     } else if (b === "special_action") {
-                                        if (settings !== undefined && settings.notifications === true)
+                                        if (getSettings() !== undefined && getSettings()!.notifications === true)
                                             notifyRef.current?.message(
                                                 `${(proprety?.price ?? 0) * 1} of money is deducted from the account`,
                                                 "info",
@@ -721,7 +710,7 @@ function App({ socket, name, server }: { socket: Socket; name: string; server: S
                                                 false
                                             );
                                         var audio = new Audio("./buying1.mp3");
-                                        audio.volume = 0.5 * ((settings?.audio[1] ?? 100) / 100) * ((settings?.audio[0] ?? 100) / 100);
+                                        audio.volume = 0.5 * ((getSettings()?.audio[1] ?? 100) / 100) * ((getSettings()?.audio[0] ?? 100) / 100);
                                         audio.loop = false;
                                         audio.play();
                                         localPlayer.balance -= (proprety?.price ?? 0) * 1;
@@ -790,10 +779,10 @@ function App({ socket, name, server }: { socket: Socket; name: string; server: S
                     x.getoutCards -= 1;
                 } else {
                     x.balance -= 50;
-                    if (x.id === socket.id && settings !== undefined && settings.notifications === true)
+                    if (x.id === socket.id && getSettings() !== undefined && getSettings()!.notifications === true)
                         notifyRef.current?.message(`${50} of money is deducted from the account`, "info", 2, () => {}, false);
                     var audio = new Audio("./moneyminus.mp3");
-                    audio.volume = ((settings?.audio[1] ?? 100) / 100) * ((settings?.audio[0] ?? 100) / 100);
+                    audio.volume = ((getSettings()?.audio[1] ?? 100) / 100) * ((getSettings()?.audio[0] ?? 100) / 100);
                     audio.loop = false;
                     audio.play();
                 }
@@ -881,10 +870,10 @@ function App({ socket, name, server }: { socket: Socket; name: string; server: S
 
                     for (const p of other_players) {
                         p.balance += amnout;
-                        if (p.id === socket.id && settings !== undefined && settings.notifications === true) {
+                        if (p.id === socket.id && getSettings() !== undefined && getSettings()!.notifications === true) {
                             notifyRef.current?.message(`${amnout} of money is added to the account`, "info", 2, () => {}, false);
                             var audio = new Audio("./moneyplus.mp3");
-                            audio.volume = ((settings?.audio[1] ?? 100) / 100) * ((settings?.audio[0] ?? 100) / 100);
+                            audio.volume = ((getSettings()?.audio[1] ?? 100) / 100) * ((getSettings()?.audio[0] ?? 100) / 100);
                             audio.loop = false;
                             audio.play();
                         }
@@ -944,10 +933,10 @@ function App({ socket, name, server }: { socket: Socket; name: string; server: S
                     case "addfunds":
                         xplayer.balance += c.amount ?? 0;
                         if (xplayer.id === socket.id) {
-                            if (settings !== undefined && settings.notifications === true)
+                            if (getSettings() !== undefined && getSettings()!.notifications === true)
                                 notifyRef.current?.message(`${c.amount ?? 0} of money is added to the account`, "info", 2, () => {}, false);
                             var audio = new Audio("./moneyplus.mp3");
-                            audio.volume = ((settings?.audio[1] ?? 100) / 100) * ((settings?.audio[0] ?? 100) / 100);
+                            audio.volume = ((getSettings()?.audio[1] ?? 100) / 100) * ((getSettings()?.audio[0] ?? 100) / 100);
                             audio.loop = false;
                             audio.play();
                             engineRef.current?.applyAnimation(2);
@@ -964,7 +953,7 @@ function App({ socket, name, server }: { socket: Socket; name: string; server: S
                                         xplayer.position = 10;
                                         xplayer.isInJail = true;
                                         var audio = new Audio("./jail.mp3");
-                                        audio.volume = 0.5 * ((settings?.audio[1] ?? 100) / 100) * ((settings?.audio[0] ?? 100) / 100);
+                                        audio.volume = 0.5 * ((getSettings()?.audio[1] ?? 100) / 100) * ((getSettings()?.audio[0] ?? 100) / 100);
                                         audio.loop = false;
                                         audio.play();
                                         xplayer.jailTurnsRemaining = 3;
@@ -981,10 +970,10 @@ function App({ socket, name, server }: { socket: Socket; name: string; server: S
                         xplayer.balance -= c.amount ?? 0;
                         if (xplayer.id === socket.id) {
                             engineRef.current?.applyAnimation(1);
-                            if (settings !== undefined && settings.notifications === true)
+                            if (getSettings() !== undefined && getSettings()!.notifications === true)
                                 notifyRef.current?.message(`${c.amount ?? 0} of money is deducted from the account`, "info", 2, () => {}, false);
                             var audio = new Audio("./moneyminus.mp3");
-                            audio.volume = ((settings?.audio[1] ?? 100) / 100) * ((settings?.audio[0] ?? 100) / 100);
+                            audio.volume = ((getSettings()?.audio[1] ?? 100) / 100) * ((getSettings()?.audio[0] ?? 100) / 100);
                             audio.loop = false;
                             audio.play();
                         }
@@ -1043,7 +1032,7 @@ function App({ socket, name, server }: { socket: Socket; name: string; server: S
                                         rolls: args.rolls,
                                         onResponse: (b, info) => {
                                             if (b === "buy") {
-                                                if (settings !== undefined && settings.notifications === true)
+                                                if (getSettings() !== undefined && getSettings()!.notifications === true)
                                                     notifyRef.current?.message(
                                                         `${(proprety?.price ?? 0) * 1} of money is deducted from the account`,
                                                         "info",
@@ -1062,7 +1051,7 @@ function App({ socket, name, server }: { socket: Socket; name: string; server: S
                                                 });
 
                                                 var audio = new Audio("./buying1.mp3");
-                                                audio.volume = 0.5 * ((settings?.audio[1] ?? 100) / 100) * ((settings?.audio[0] ?? 100) / 100);
+                                                audio.volume = 0.5 * ((getSettings()?.audio[1] ?? 100) / 100) * ((getSettings()?.audio[0] ?? 100) / 100);
                                                 audio.loop = false;
                                                 audio.play();
 
@@ -1081,7 +1070,7 @@ function App({ socket, name, server }: { socket: Socket; name: string; server: S
                                                 );
                                             } else if (b === "special_action") {
                                                 console.log(info);
-                                                if (settings !== undefined && settings.notifications === true)
+                                                if (getSettings() !== undefined && getSettings()!.notifications === true)
                                                     notifyRef.current?.message(
                                                         `${(proprety?.price ?? 0) * 1} of money is deducted from the account`,
                                                         "info",
@@ -1105,7 +1094,7 @@ function App({ socket, name, server }: { socket: Socket; name: string; server: S
                                                     group: prp?.group ?? "",
                                                 });
                                                 var audio = new Audio("./buying1.mp3");
-                                                audio.volume = 0.5 * ((settings?.audio[1] ?? 100) / 100) * ((settings?.audio[0] ?? 100) / 100);
+                                                audio.volume = 0.5 * ((getSettings()?.audio[1] ?? 100) / 100) * ((getSettings()?.audio[0] ?? 100) / 100);
                                                 audio.loop = false;
                                                 audio.play();
 
@@ -1146,7 +1135,7 @@ function App({ socket, name, server }: { socket: Socket; name: string; server: S
                                                                     time: 2000,
                                                                     onDone: () => {
                                                                         payment_ammount = (l[0] + l[1]) * (c.rentmultiplier ?? 1);
-                                                                        if (settings !== undefined && settings.notifications === true)
+                                                                        if (getSettings() !== undefined && getSettings()!.notifications === true)
                                                                             notifyRef.current?.message(
                                                                                 `${payment_ammount} of money is deducted from the account`,
                                                                                 "info",
@@ -1156,7 +1145,7 @@ function App({ socket, name, server }: { socket: Socket; name: string; server: S
                                                                             );
                                                                         var audio = new Audio("./moneyminus.mp3");
                                                                         audio.volume =
-                                                                            ((settings?.audio[1] ?? 100) / 100) * ((settings?.audio[0] ?? 100) / 100);
+                                                                            ((getSettings()?.audio[1] ?? 100) / 100) * ((getSettings()?.audio[0] ?? 100) / 100);
                                                                         audio.loop = false;
                                                                         audio.play();
 
@@ -1196,7 +1185,7 @@ function App({ socket, name, server }: { socket: Socket; name: string; server: S
                                                                 const rents = [0, 25, 50, 100, 200];
                                                                 payment_ammount = rents[count] * (c.rentmultiplier ?? 1);
 
-                                                                if (settings !== undefined && settings.notifications === true)
+                                                                if (getSettings() !== undefined && getSettings()!.notifications === true)
                                                                     notifyRef.current?.message(
                                                                         `${payment_ammount} of money is deducted from the account`,
                                                                         "info",
@@ -1206,7 +1195,7 @@ function App({ socket, name, server }: { socket: Socket; name: string; server: S
                                                                     );
                                                                 var audio = new Audio("./moneyminus.mp3");
                                                                 audio.volume =
-                                                                    ((settings?.audio[1] ?? 100) / 100) * ((settings?.audio[0] ?? 100) / 100);
+                                                                    ((getSettings()?.audio[1] ?? 100) / 100) * ((getSettings()?.audio[0] ?? 100) / 100);
                                                                 audio.loop = false;
                                                                 audio.play();
                                                                 if (prp.morgage === undefined || (prp.morgage !== undefined && prp.morgage === false))
@@ -1264,10 +1253,10 @@ ${(c.hotels ?? 1) * xplayer.properties.filter((v) => v.count === "h").length}
 which is ${payment_ammount}
                         `);
                         if (xplayer.id === socket.id && payment_ammount > 0) {
-                            if (settings !== undefined && settings.notifications === true)
+                            if (getSettings() !== undefined && getSettings()!.notifications === true)
                                 notifyRef.current?.message(`${payment_ammount} of money is deducted from the account`, "info", 2, () => {}, false);
                             var audio = new Audio("./moneyminus.mp3");
-                            audio.volume = ((settings?.audio[1] ?? 100) / 100) * ((settings?.audio[0] ?? 100) / 100);
+                            audio.volume = ((getSettings()?.audio[1] ?? 100) / 100) * ((getSettings()?.audio[0] ?? 100) / 100);
                             audio.loop = false;
                             audio.play();
                             engineRef.current?.applyAnimation(1);
@@ -1370,7 +1359,6 @@ which is ${payment_ammount}
 
         return () => {
             to_emit_name = false;
-            clearInterval(settings_interval);
             document.removeEventListener("mousemove", mouseMove);
         };
     }, []);
@@ -1411,9 +1399,7 @@ which is ${payment_ammount}
                     server={server}
                     Morgage={{
                         onCanc: (a, prpName: string) => {
-                            var settings = JSON.parse(decodeURIComponent(CookieManager.get("monopolySettings") as string))[
-                                "monopolySettings"
-                            ] as MonopolySettings;
+                            const settings = settingsRef.current;
                             const localPlayer = clients.get(socket.id);
                             if (localPlayer === undefined) return;
                             if (settings !== undefined && settings.notifications === true)
@@ -1435,9 +1421,7 @@ which is ${payment_ammount}
                             SetClients(new Map(clients.set(socket.id, localPlayer)));
                         },
                         onMort: (a, prpName) => {
-                            var settings = JSON.parse(decodeURIComponent(CookieManager.get("monopolySettings") as string))[
-                                "monopolySettings"
-                            ] as MonopolySettings;
+                            const settings = settingsRef.current;
                             const localPlayer = clients.get(socket.id);
                             if (localPlayer === undefined) return;
                             if (settings !== undefined && settings.notifications === true)

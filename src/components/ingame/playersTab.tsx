@@ -1,4 +1,4 @@
-import { useState, forwardRef, useImperativeHandle, useEffect } from "react";
+import { useState, forwardRef, useImperativeHandle } from "react";
 import { Socket } from "../../assets/sockets.ts";
 import { Player } from "../../assets/player.ts";
 import DiceIcon from "../../assets/images/roll.png";
@@ -6,9 +6,7 @@ import { translateGroup } from "./streetCard.tsx";
 import monopolyJSON from "../../assets/monopoly.json";
 import HouseIcon from "../../assets/images/h.png";
 import HotelIcon from "../../assets/images/ho.png";
-import { MonopolyCookie, MonopolySettings } from "../../assets/types.ts";
-// @ts-ignore
-import { CookieManager } from "../../assets/cookieManager.ts";
+import { useSettings } from "../../contexts/SettingsContext.tsx";
 interface PlayersTabProps {
     socket: Socket;
     players: Array<Player>;
@@ -28,10 +26,7 @@ const playersTab = forwardRef<PlayersTabRef, PlayersTabProps>((props, ref) => {
     );
 
     const [current, SetCurrentPlayer] = useState<Player | undefined>();
-    const [settings, SetSettings] = useState<MonopolySettings>();
-    useEffect(() => {
-        SetSettings((JSON.parse(decodeURIComponent(CookieManager.get("monopolySettings") as string)) as MonopolyCookie).settings);
-    }, [document.cookie]);
+    const { settings } = useSettings();
 
     useImperativeHandle(ref, () => ({
         clickdOnPlayer(playerId) {

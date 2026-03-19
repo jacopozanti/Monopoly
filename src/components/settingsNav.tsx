@@ -1,74 +1,33 @@
 import Slider from "./utils/slider";
-import {
-    MonopolySettings,
-    MonopolyCookie,
-    EngineSettings,
-} from "../assets/types";
-import { useState, useEffect } from "react";
-import { CookieManager } from "../assets/cookieManager";
-export default function settingsNav() {
-    const cookie = JSON.parse(decodeURIComponent(CookieManager.get("monopolySettings") as string)) as MonopolyCookie;
-    const l: {
-        gameEngine: [
-            EngineSettings,
-            React.Dispatch<React.SetStateAction<EngineSettings>>
-        ];
-        numbers: [number, React.Dispatch<React.SetStateAction<number>>][];
-        booleans: [boolean, React.Dispatch<React.SetStateAction<boolean>>][];
-    } = {
-        gameEngine: useState<EngineSettings>("2d"),
-        numbers: [
-            useState<number>(
-                cookie.settings ? cookie.settings.accessibility[0] : 45
-            ),
-            useState<number>(
-                cookie.settings ? cookie.settings.accessibility[1] : 5
-            ),
-            useState<number>(cookie.settings ? cookie.settings.audio[0] : 100),
-            useState<number>(cookie.settings ? cookie.settings.audio[1] : 100),
-            useState<number>(cookie.settings ? cookie.settings.audio[2] : 25),
-        ],
-        booleans: [
-            useState<boolean>(
-                cookie.settings ? cookie.settings.accessibility[2] : false
-            ),
-            useState<boolean>(
-                cookie.settings ? cookie.settings.accessibility[3] : false
-            ),
-            useState<boolean>(
-                cookie.settings ? cookie.settings.accessibility[4] : false
-            ),
-            useState<boolean>(
-                cookie.settings ? cookie.settings.notifications : false
-            ),
-        ],
-    };
+import type { EngineSettings } from "../assets/types";
+import { useSettings } from "../contexts/SettingsContext";
 
-    useEffect(() => {
-        const cookie = JSON.parse(decodeURIComponent(CookieManager.get("monopolySettings") as string)) as MonopolyCookie;
-        const settings = {
-            gameEngine: l.gameEngine[0],
-            accessibility: [
-                l.numbers[0][0],
-                l.numbers[1][0],
-                l.booleans[0][0],
-                l.booleans[1][0],
-                l.booleans[2][0],
-            ],
-            audio: [l.numbers[2][0], l.numbers[3][0], l.numbers[4][0]],
-            notifications: l.booleans[3][0],
-        } as MonopolySettings;
+export default function SettingsNav() {
+    const { settings, updateSettings } = useSettings();
 
-        CookieManager.set("monopolySettings",encodeURIComponent( JSON.stringify({
-            login: cookie.login,
-            settings: settings,
-        } as MonopolyCookie)))
-    }, [
-        l.gameEngine[0],
-        ...l.numbers.map((v) => v[0]),
-        ,
-        ...l.booleans.map((v) => v[0]),
-    ]);
+    const rotationSpeed = settings?.accessibility[0] ?? 45;
+    const scaleSpeed = settings?.accessibility[1] ?? 5;
+    const showUsersId = settings?.accessibility[2] ?? false;
+    const showUsersMouse = settings?.accessibility[3] ?? false;
+    const addColors = settings?.accessibility[4] ?? false;
+    const masterAudio = settings?.audio[0] ?? 100;
+    const sfxAudio = settings?.audio[1] ?? 100;
+    const musicAudio = settings?.audio[2] ?? 25;
+    const notifyBalance = settings?.notifications ?? false;
+    const gameEngine = settings?.gameEngine ?? "2d";
+
+    function setAccessibility(index: number, value: number | boolean) {
+        const acc = [...(settings?.accessibility ?? [45, 5, false, false, false])] as [number, number, boolean, boolean, boolean];
+        (acc as any)[index] = value;
+        updateSettings({ accessibility: acc });
+    }
+
+    function setAudio(index: number, value: number) {
+        const audio = [...(settings?.audio ?? [100, 100, 25])] as [number, number, number];
+        audio[index] = value;
+        updateSettings({ audio });
+    }
+
     return (
         <>
             <h3 style={{ textAlign: "center" }}>Settings</h3>
@@ -76,9 +35,14 @@ export default function settingsNav() {
                 <div className="settingsItem">
                     <p>Game Engine </p>
                     <div>
-                        <select name="" id="">
-                            <option>2D</option>
-                            <option>3D</option>
+                        <select
+                            value={gameEngine}
+                            onChange={(e) =>
+                                updateSettings({ gameEngine: e.target.value as EngineSettings })
+                            }
+                        >
+                            <option value="2d">2D</option>
+                            <option value="3d">3D</option>
                         </select>
                     </div>
                 </div>
@@ -98,17 +62,12 @@ export default function settingsNav() {
                 <div>
                     <div className="settingsItem">
                         <p>Rotation Speed </p>
-
                         <Slider
                             step={90 / 8}
                             min={0}
                             max={180}
-                            defaultValue={l.numbers[0][0]}
-                            onChange={(e) => {
-                                l.numbers[0][1](
-                                    parseFloat(e.currentTarget.value)
-                                );
-                            }}
+                            defaultValue={rotationSpeed}
+                            onChange={(e) => setAccessibility(0, parseFloat(e.currentTarget.value))}
                             fixedNum={2}
                             suffix=" deg"
                         />
@@ -119,12 +78,8 @@ export default function settingsNav() {
                             step={1}
                             min={1}
                             max={10}
-                            defaultValue={l.numbers[1][0]}
-                            onChange={(e) => {
-                                l.numbers[1][1](
-                                    parseFloat(e.currentTarget.value)
-                                );
-                            }}
+                            defaultValue={scaleSpeed}
+                            onChange={(e) => setAccessibility(1, parseFloat(e.currentTarget.value))}
                             fixedNum={0}
                         />
                     </div>
@@ -132,11 +87,9 @@ export default function settingsNav() {
                         <p>Show Users Id </p>
                         <div>
                             <input
-                                defaultChecked={l.booleans[0][0]}
+                                checked={showUsersId}
                                 type="checkbox"
-                                onChange={(e) => {
-                                    l.booleans[0][1](e.currentTarget.checked);
-                                }}
+                                onChange={(e) => setAccessibility(2, e.currentTarget.checked)}
                             />
                         </div>
                     </div>
@@ -144,11 +97,9 @@ export default function settingsNav() {
                         <p>Show Users Mouse </p>
                         <div>
                             <input
-                                defaultChecked={l.booleans[1][0]}
+                                checked={showUsersMouse}
                                 type="checkbox"
-                                onChange={(e) => {
-                                    l.booleans[1][1](e.currentTarget.checked);
-                                }}
+                                onChange={(e) => setAccessibility(3, e.currentTarget.checked)}
                             />
                         </div>
                     </div>
@@ -156,11 +107,9 @@ export default function settingsNav() {
                         <p>Add Colors to Users </p>
                         <div>
                             <input
-                                defaultChecked={l.booleans[2][0]}
+                                checked={addColors}
                                 type="checkbox"
-                                onChange={(e) => {
-                                    l.booleans[2][1](e.currentTarget.checked);
-                                }}
+                                onChange={(e) => setAccessibility(4, e.currentTarget.checked)}
                             />
                         </div>
                     </div>
@@ -175,14 +124,10 @@ export default function settingsNav() {
                             step={1}
                             min={0}
                             max={100}
-                            defaultValue={l.numbers[2][0]}
+                            defaultValue={masterAudio}
                             fixedNum={0}
                             suffix="%"
-                            onChange={(e) => {
-                                l.numbers[2][1](
-                                    parseFloat(e.currentTarget.value)
-                                );
-                            }}
+                            onChange={(e) => setAudio(0, parseFloat(e.currentTarget.value))}
                         />
                     </div>
                     <div className="settingsItem">
@@ -191,14 +136,10 @@ export default function settingsNav() {
                             step={1}
                             min={0}
                             max={100}
-                            defaultValue={l.numbers[3][0]}
+                            defaultValue={sfxAudio}
                             fixedNum={0}
                             suffix="%"
-                            onChange={(e) => {
-                                l.numbers[3][1](
-                                    parseFloat(e.currentTarget.value)
-                                );
-                            }}
+                            onChange={(e) => setAudio(1, parseFloat(e.currentTarget.value))}
                         />
                     </div>
                     <div className="settingsItem">
@@ -207,14 +148,10 @@ export default function settingsNav() {
                             step={1}
                             min={0}
                             max={100}
-                            defaultValue={l.numbers[4][0]}
+                            defaultValue={musicAudio}
                             fixedNum={0}
                             suffix="%"
-                            onChange={(e) => {
-                                l.numbers[4][1](
-                                    parseFloat(e.currentTarget.value)
-                                );
-                            }}
+                            onChange={(e) => setAudio(2, parseFloat(e.currentTarget.value))}
                         />
                     </div>
                     <br />
@@ -226,11 +163,9 @@ export default function settingsNav() {
                         <p>Notify Balance Movements </p>
                         <div>
                             <input
-                                defaultChecked={l.booleans[3][0]}
+                                checked={notifyBalance}
                                 type="checkbox"
-                                onChange={(e) => {
-                                    l.booleans[3][1](e.currentTarget.checked);
-                                }}
+                                onChange={(e) => updateSettings({ notifications: e.currentTarget.checked })}
                             />
                         </div>
                     </div>

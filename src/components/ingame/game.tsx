@@ -7,9 +7,9 @@ import { Socket } from "../../assets/sockets.ts";
 import StreetCard, { StreetDisplayInfo, UtilitiesDisplayInfo, RailroadDisplayInfo, translateGroup } from "./streetCard.tsx";
 import monopolyJSON from "../../assets/monopoly.json";
 import ChacneCard, { ChanceDisplayInfo } from "./specialCards.tsx";
-import { MonopolyCookie, MonopolySettings, GameTrading, MonopolyMode } from "../../assets/types.ts";
+import { GameTrading, MonopolyMode } from "../../assets/types.ts";
 import Slider from "../utils/slider.tsx";
-import { CookieManager } from "../../assets/cookieManager.ts";
+import { useSettings } from "../../contexts/SettingsContext.tsx";
 interface MonopolyGameProps {
     players: Array<Player>;
     myTurn: boolean;
@@ -66,17 +66,8 @@ const MonopolyGame = forwardRef<MonopolyGameRef, MonopolyGameProps>((prop, ref) 
     const [advnacedStreet, SetAdvancedStreet] = useState<boolean>(false);
     const [rotation, SetRotation] = useState<number>(0);
     const [scale, SetScale] = useState<number>(1);
-    const [settings, SetSettings] = useState<MonopolySettings>();
+    const { settings } = useSettings();
     const [timer, SetTimer] = useState<number>(0);
-    useEffect(() => {
-        const settings_interval = setInterval(() => {
-            SetSettings((JSON.parse(decodeURIComponent(CookieManager.get("monopolySettings") as string)) as MonopolyCookie).settings);
-        }, 200);
-
-        return () => {
-            clearInterval(settings_interval);
-        };
-    }, [document.cookie]);
 
     const [streetDisplay, SetStreetDisplay] = useState<{}>({
         cardCost: -1,
@@ -139,7 +130,7 @@ const MonopolyGame = forwardRef<MonopolyGameRef, MonopolyGameProps>((prop, ref) 
         });
     }
     function swipeSound() {
-        const _settings = (JSON.parse(decodeURIComponent(CookieManager.get("monopolySettings") as string)) as MonopolyCookie).settings;
+        const _settings = settings;
         let audio = new Audio("./card.mp3");
         audio.volume = ((_settings?.audio[1] ?? 100) / 100) * ((_settings?.audio[0] ?? 100) / 100);
         audio.loop = false;
@@ -174,7 +165,7 @@ const MonopolyGame = forwardRef<MonopolyGameRef, MonopolyGameProps>((prop, ref) 
                     }
                 ) {
                     function clickSound() {
-                        const _settings = (JSON.parse(decodeURIComponent(CookieManager.get("monopolySettings") as string)) as MonopolyCookie).settings;
+                        const _settings = settings;
                         let audio = new Audio("./click.mp3");
                         audio.volume = ((_settings?.audio[1] ?? 100) / 100) * ((_settings?.audio[0] ?? 100) / 100);
                         audio.loop = false;
