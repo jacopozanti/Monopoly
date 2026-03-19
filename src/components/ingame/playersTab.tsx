@@ -1,11 +1,11 @@
 import { useState, forwardRef, useImperativeHandle, useEffect } from "react";
 import { Socket } from "../../assets/sockets.ts";
 import { Player } from "../../assets/player.ts";
-import DiceIcon from "../../../public/roll.png";
+import DiceIcon from "../../assets/images/roll.png";
 import { translateGroup } from "./streetCard.tsx";
 import monopolyJSON from "../../assets/monopoly.json";
-import HouseIcon from "../../../public/h.png";
-import HotelIcon from "../../../public/ho.png";
+import HouseIcon from "../../assets/images/h.png";
+import HotelIcon from "../../assets/images/ho.png";
 import { MonopolyCookie, MonopolySettings } from "../../assets/types.ts";
 // @ts-ignore
 import { CookieManager } from "../../assets/cookieManager.ts";

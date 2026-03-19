@@ -1,6 +1,6 @@
-import RailIcon from "../../../public/rails.png";
-import ElectricityIcon from "../../../public/elects.png";
-import WaterIcon from "../../../public/water.png";
+import RailIcon from "../../assets/images/rails.png";
+import ElectricityIcon from "../../assets/images/elects.png";
+import WaterIcon from "../../assets/images/water.png";
 
 export interface StreetDisplayInfo {
     title: string;

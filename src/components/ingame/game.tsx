@@ -1,7 +1,7 @@
 import { forwardRef, useEffect, useImperativeHandle, useState } from "react";
-import RollIcon from "../../../public/roll.png";
-import HouseIcon from "../../../public/h.png";
-import HotelIcon from "../../../public/ho.png";
+import RollIcon from "../../assets/images/roll.png";
+import HouseIcon from "../../assets/images/h.png";
+import HotelIcon from "../../assets/images/ho.png";
 import { Player } from "./../../assets/player.ts";
 import { Socket } from "../../assets/sockets.ts";
 import StreetCard, { StreetDisplayInfo, UtilitiesDisplayInfo, RailroadDisplayInfo, translateGroup } from "./streetCard.tsx";
