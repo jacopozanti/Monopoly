@@ -6,11 +6,11 @@ import PropretiesIcon from "../../assets/images/proprety.png";
 import SettingsIcon from "../../assets/images/settings.png";
 import MonopolyIcon from "../../assets/images/icon.png";
 
-import { forwardRef, useState, useImperativeHandle, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Player } from "../../assets/player.ts";
 import { Server, Socket } from "../../assets/sockets.ts";
-import PropretyTab, { PropretyTabRef } from "./propretyTab.tsx";
-import PlayersTab, { PlayersTabRef } from "./playersTab.tsx";
+import PropretyTab, { type PropretyTabApi } from "./propretyTab.tsx";
+import PlayersTab, { type PlayersTabApi } from "./playersTab.tsx";
 import SettingsNav from "../settingsNav.tsx";
 import { MonopolyMode, historyAction } from "../../assets/types.ts";
 
@@ -29,13 +29,19 @@ interface MonopolyNavProps {
     time: Date;
     selectedMode: MonopolyMode;
 }
-export interface MonopolyNavRef {
+export interface MonopolyNavApi {
     addMessage: (arg: { from: string; message: string }) => void;
     reRenderPlayerList: () => void;
     clickedOnBoard: (a: number) => void;
 }
+// Keep old name as alias for backwards compatibility
+export type MonopolyNavRef = MonopolyNavApi;
 
-const MonopolyNav = forwardRef<MonopolyNavRef, MonopolyNavProps>((prop, ref) => {
+interface MonopolyNavPropsExt extends MonopolyNavProps {
+    onReady?: (api: MonopolyNavApi) => void;
+}
+
+function MonopolyNav(prop: MonopolyNavPropsExt) {
     const [tabIndex, SetTab] = useState<number>(0);
     const [messages, SetMessages] = useState<Array<{ from: string; message: string }>>([]);
     const [currentTime, setCurrentTime] = useState<Date>(new Date());
@@ -81,7 +87,7 @@ const MonopolyNav = forwardRef<MonopolyNavRef, MonopolyNavProps>((prop, ref) => 
         }
     }
     const [displayPlayers, SetDisplays] = useState<Array<Player>>(prop.players);
-    useImperativeHandle(ref, () => ({
+    const navApi: MonopolyNavApi = {
         addMessage(arg) {
             SetMessages((old) => [...old, arg]);
             if (tabIndex !== 2) {
@@ -106,10 +112,14 @@ const MonopolyNav = forwardRef<MonopolyNavRef, MonopolyNavProps>((prop, ref) => 
                 propretyRef.current?.clickedOnBoard(a);
             });
         },
-    }));
+    };
 
-    const propretyRef = useRef<PropretyTabRef>(null);
-    const playersRef = useRef<PlayersTabRef>(null);
+    useEffect(() => {
+        prop.onReady?.(navApi);
+    }, []);
+
+    const propretyRef = useRef<PropretyTabApi | null>(null);
+    const playersRef = useRef<PlayersTabApi | null>(null);
 
     useEffect(reRenderPlayerList, [prop.players.map((v) => v.properties), prop.players.map((v) => v.balance)]);
 
@@ -217,7 +227,7 @@ const MonopolyNav = forwardRef<MonopolyNavRef, MonopolyNavProps>((prop, ref) => 
             <nav className="content" data-index={tabIndex > 4 ? 0 : tabIndex < 0 ? 0 : tabIndex}>
                 {tabIndex == 1 ? (
                     <PropretyTab
-                        ref={propretyRef}
+                        onReady={(api) => { propretyRef.current = api; }}
                         players={displayPlayers}
                         socket={prop.socket}
                         Morgage={prop.Morgage}
@@ -273,7 +283,7 @@ const MonopolyNav = forwardRef<MonopolyNavRef, MonopolyNavProps>((prop, ref) => 
                     <SettingsNav />
                 ) : (
                     <PlayersTab
-                        ref={playersRef}
+                        onReady={(api) => { playersRef.current = api; }}
                         clickedOnPlayer={(position) => {
                             SetTab(1);
                             requestAnimationFrame(() => {
@@ -288,5 +298,5 @@ const MonopolyNav = forwardRef<MonopolyNavRef, MonopolyNavProps>((prop, ref) => 
             </nav>
         </nav>
     );
-});
+}
 export default MonopolyNav;

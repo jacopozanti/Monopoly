@@ -1,4 +1,4 @@
-import { useState, forwardRef, useImperativeHandle } from "react";
+import { useState, useEffect } from "react";
 import { Socket } from "../../assets/sockets.ts";
 import { Player } from "../../assets/player.ts";
 import DiceIcon from "../../assets/images/roll.png";
@@ -13,11 +13,16 @@ interface PlayersTabProps {
     currentTurn: string;
     clickedOnPlayer: (position: number) => void;
 }
-export interface PlayersTabRef {
+export interface PlayersTabApi {
     clickdOnPlayer: (playerId: string) => void;
 }
+export type PlayersTabRef = PlayersTabApi;
 
-const playersTab = forwardRef<PlayersTabRef, PlayersTabProps>((props, ref) => {
+interface PlayersTabPropsExt extends PlayersTabProps {
+    onReady?: (api: PlayersTabApi) => void;
+}
+
+function PlayersTab(props: PlayersTabPropsExt) {
     const localPlayer: Player | undefined = props.players.filter((v) => v.id === props.socket.id)[0];
     const propretyMap = new Map(
         monopolyJSON.properties.map((obj) => {
@@ -28,7 +33,7 @@ const playersTab = forwardRef<PlayersTabRef, PlayersTabProps>((props, ref) => {
     const [current, SetCurrentPlayer] = useState<Player | undefined>();
     const { settings } = useSettings();
 
-    useImperativeHandle(ref, () => ({
+    const playersApi: PlayersTabApi = {
         clickdOnPlayer(playerId) {
             for (const x of props.players) {
                 if (x.id === playerId) {
@@ -36,7 +41,11 @@ const playersTab = forwardRef<PlayersTabRef, PlayersTabProps>((props, ref) => {
                 }
             }
         },
-    }));
+    };
+
+    useEffect(() => {
+        props.onReady?.(playersApi);
+    }, []);
 
     function sum(number: number[]) {
         var x = 0;
@@ -188,6 +197,6 @@ const playersTab = forwardRef<PlayersTabRef, PlayersTabProps>((props, ref) => {
             )}
         </>
     );
-});
+}
 
-export default playersTab;
+export default PlayersTab;
