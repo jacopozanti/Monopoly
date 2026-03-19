@@ -5,6 +5,7 @@ import Gallery from "./Pages/Galery/gallery.tsx";
 import Home from "./Pages/Home/home.tsx";
 import Users from "./Pages/Users/users.tsx";
 import { SettingsProvider } from "./contexts/SettingsContext.tsx";
+import { NotificationProvider } from "./contexts/NotificationContext.tsx";
 const router = createBrowserRouter([
     {
         path: "Monopoly",
@@ -23,7 +24,9 @@ const router = createBrowserRouter([
 function App() {
     return (
         <SettingsProvider>
-            <RouterProvider router={router} />
+            <NotificationProvider>
+                <RouterProvider router={router} />
+            </NotificationProvider>
         </SettingsProvider>
     );
 }
