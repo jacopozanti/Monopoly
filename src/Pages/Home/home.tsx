@@ -1,8 +1,9 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import Monopoly from "./monopoly.tsx";
 import "../../home.css";
 import { Server, Socket, io } from "../../assets/sockets.ts";
-import NotifyElement, { NotificatorRef } from "../../components/notificator.tsx";
+import NotificationOverlay from "../../components/NotificationOverlay.tsx";
+import { useNotifications } from "../../contexts/NotificationContext.tsx";
 import { MonopolyCookie, User, botInitial } from "../../assets/types.ts";
 import SettingsNav from "../../components/settingsNav.tsx";
 
@@ -37,7 +38,7 @@ export default function Home() {
         CookieManager.set("monopolySettings", encodeURIComponent(JSON.stringify(cookie as MonopolyCookie)));
     }
 
-    const notifyRef = useRef<NotificatorRef>(null);
+    const { showNotification } = useNotifications();
     const [socket, SetSocket] = useState<Socket>();
     // Gameplay stuff
     const [name, SetName] = useState<string>("");
@@ -85,7 +86,7 @@ export default function Home() {
 
     const joinButtonClicked = async () => {
         if (name.replace(" ", "").length === 0) {
-            notifyRef.current?.message("please add your name before joining", "info", 2);
+            showNotification("please add your name before joining", "info", 2);
             return;
         }
 
@@ -125,19 +126,19 @@ export default function Home() {
                         SetDisabled(false);
                         break;
                     case 1:
-                        notifyRef.current?.message("the game has already begun", "error", 2, () => {
+                        showNotification("the game has already begun", "error", 2, () => {
                             SetDisabled(false);
                         });
                         socket.disconnect();
                         break;
                     case 2:
-                        notifyRef.current?.message("too many players on the server", "error", 2, () => {
+                        showNotification("too many players on the server", "error", 2, () => {
                             SetDisabled(false);
                         });
                         socket.disconnect();
                         break;
                     default:
-                        notifyRef.current?.message("unkown error", "error", 2, () => {
+                        showNotification("unkown error", "error", 2, () => {
                             SetDisabled(false);
                         });
                         socket.disconnect();
@@ -146,7 +147,7 @@ export default function Home() {
                 }
             });
         } catch (r) {
-            notifyRef.current?.message(`Could not connect to peer ${addr}`, "error", 2, () => {
+            showNotification(`Could not connect to peer ${addr}`, "error", 2, () => {
                 SetDisabled(false);
             });
         }
@@ -162,7 +163,7 @@ export default function Home() {
     function startButtonClicked(bots: botInitial[]) {
         try {
             if (name.replace(" ", "").length === 0) {
-                notifyRef.current?.message("please add your name before joining", "info", 2);
+                showNotification("please add your name before joining", "info", 2);
                 return;
             }
 
@@ -182,19 +183,19 @@ export default function Home() {
 
                             break;
                         case 1:
-                            notifyRef.current?.message("the game has already begun", "error", 2, () => {
+                            showNotification("the game has already begun", "error", 2, () => {
                                 SetDisabled(false);
                             });
                             socket.disconnect();
                             break;
                         case 2:
-                            notifyRef.current?.message("too many players on the server", "error", 2, () => {
+                            showNotification("too many players on the server", "error", 2, () => {
                                 SetDisabled(false);
                             });
                             socket.disconnect();
                             break;
                         default:
-                            notifyRef.current?.message("unkown error", "error", 2, () => {
+                            showNotification("unkown error", "error", 2, () => {
                                 SetDisabled(false);
                             });
                             socket.disconnect();
@@ -212,7 +213,7 @@ export default function Home() {
         <Monopoly socket={socket} name={name} server={server} />
     ) : (
         <>
-            <NotifyElement ref={notifyRef} />
+            <NotificationOverlay />
             <div className="entry">
                 <nav>
                     <button

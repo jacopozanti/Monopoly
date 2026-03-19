@@ -4,7 +4,8 @@ import { Player, PlayerJSON } from "../../assets/player.ts";
 import "../../monopoly.css";
 import MonopolyNav, { MonopolyNavRef } from "../../components/ingame/nav.tsx";
 import MonopolyGame, { MonopolyGameRef } from "../../components/ingame/game.tsx";
-import NotifyElement, { NotificatorRef } from "../../components/notificator.tsx";
+import NotificationOverlay from "../../components/NotificationOverlay.tsx";
+import { useNotifications } from "../../contexts/NotificationContext.tsx";
 import monopolyJSON from "../../assets/monopoly.json";
 import { MonopolyModes, historyAction, history, GameTrading, MonopolyMode } from "../../assets/types.ts";
 import { useSettings } from "../../contexts/SettingsContext.tsx";
@@ -46,9 +47,12 @@ function App({ socket, name, server }: { socket: Socket; name: string; server: S
         }
     }, [globalSettings]);
 
+    const { showNotification, showDialog, dismissDialog } = useNotifications();
+    const notifyActionsRef = useRef({ showNotification, showDialog, dismissDialog });
+    notifyActionsRef.current = { showNotification, showDialog, dismissDialog };
+
     const engineRef = useRef<MonopolyGameRef>(null);
     const navRef = useRef<MonopolyNavRef>(null);
-    const notifyRef = useRef<NotificatorRef>(null);
 
     const propretyMap = new Map(
         monopolyJSON.properties.map((obj) => {
@@ -164,7 +168,7 @@ function App({ socket, name, server }: { socket: Socket; name: string; server: S
                             audio.play();
                             if (_xplayer.id === socket.id) {
                                 if (getSettings() !== undefined && getSettings()!.notifications === true)
-                                    notifyRef.current?.message(`${200} of money is added to the account`, "info", 2, () => {}, false);
+                                    notifyActionsRef.current.showNotification(`${200} of money is added to the account`, "info", 2, () => {}, false);
                                 engineRef.current?.applyAnimation(2);
                             }
                             addedMoney = true;
@@ -185,7 +189,7 @@ function App({ socket, name, server }: { socket: Socket; name: string; server: S
                                 _xplayer.balance += 200;
                                 if (_xplayer.id === socket.id) {
                                     if (getSettings() !== undefined && getSettings()!.notifications === true)
-                                        notifyRef.current?.message(`${200} of money is added to the account`, "info", 2, () => {}, false);
+                                        notifyActionsRef.current.showNotification(`${200} of money is added to the account`, "info", 2, () => {}, false);
                                     engineRef.current?.applyAnimation(2);
                                 }
                                 addedMoney = true;
@@ -251,23 +255,15 @@ function App({ socket, name, server }: { socket: Socket; name: string; server: S
             SetCurrent(args.turn);
             if (clients.size > 2) {
                 const name = clients.get(args.id)?.username ?? "player";
-                notifyRef.current?.message(`${name} disconected`, "error");
+                notifyActionsRef.current.showNotification(`${name} disconected`, "error");
             } else if (clients.has(args.id)) {
                 mainTheme.pause();
-                notifyRef.current?.dialog(
-                    (close_func, createButton) => ({
-                        innerHTML: `<h3> YOU WON! </h3> <p> your the only left player with the balance of ${
-                            clients.get(socket.id)?.balance ?? 0
-                        } </p>`,
-                        buttons: [
-                            createButton("PLAY ANOTHER GAME", () => {
-                                close_func();
-                                document.location.reload();
-                            }),
-                        ],
-                    }),
-                    "winning"
-                );
+                notifyActionsRef.current.showDialog({
+                    title: "YOU WON!",
+                    body: `your the only left player with the balance of ${clients.get(socket.id)?.balance ?? 0}`,
+                    buttons: [{ label: "PLAY ANOTHER GAME", onClick: () => { notifyActionsRef.current.dismissDialog(); document.location.reload(); } }],
+                    soundtrack: "winning",
+                });
             }
             destroyPlayer(args.id);
         };
@@ -292,63 +288,39 @@ function App({ socket, name, server }: { socket: Socket; name: string; server: S
                 if (args.pJson.id !== socket.id) {
                     if (clients.size > 2) {
                         const name = args.pJson.username;
-                        notifyRef.current?.message(`${name} lost`, "info");
+                        notifyActionsRef.current.showNotification(`${name} lost`, "info");
                     } else {
                         if (clients.has(socket.id)) {
                             mainTheme.pause();
-                            notifyRef.current?.dialog(
-                                (close_func, createButton) => ({
-                                    innerHTML: `<h3> YOU WON! </h3> <p> your the only left player with the balance of ${
-                                        clients.get(socket.id)?.balance ?? 0
-                                    } </p>`,
-                                    buttons: [
-                                        createButton("PLAY ANOTHER GAME", () => {
-                                            close_func();
-                                            document.location.reload();
-                                        }),
-                                    ],
-                                }),
-                                "winning"
-                            );
+                            notifyActionsRef.current.showDialog({
+                                title: "YOU WON!",
+                                body: `your the only left player with the balance of ${clients.get(socket.id)?.balance ?? 0}`,
+                                buttons: [{ label: "PLAY ANOTHER GAME", onClick: () => { notifyActionsRef.current.dismissDialog(); document.location.reload(); } }],
+                                soundtrack: "winning",
+                            });
                         } else {
                             const xclient = Array.from(clients.values()).filter((v) => v.id !== args.pJson.id)[0];
                             const name = xclient.username ?? 0;
                             mainTheme.pause();
-                            notifyRef.current?.dialog(
-                                (close_func, createButton) => ({
-                                    innerHTML: `<h3> ${name} WON! </h3> <p> ${name} won with the balance of ${
-                                        clients.get(socket.id)?.balance ?? 0
-                                    } </p>`,
-                                    buttons: [
-                                        createButton("PLAY ANOTHER GAME", () => {
-                                            close_func();
-                                            document.location.reload();
-                                        }),
-                                    ],
-                                }),
-                                "winning"
-                            );
+                            notifyActionsRef.current.showDialog({
+                                title: `${name} WON!`,
+                                body: `${name} won with the balance of ${clients.get(socket.id)?.balance ?? 0}`,
+                                buttons: [{ label: "PLAY ANOTHER GAME", onClick: () => { notifyActionsRef.current.dismissDialog(); document.location.reload(); } }],
+                                soundtrack: "winning",
+                            });
                         }
                     }
                 } else {
                     mainTheme.pause();
-                    notifyRef.current?.dialog(
-                        (close_func, createButton) => ({
-                            innerHTML: `<h3> YOU LOST! </h3> <p> you lost your money and lost the monopol with a wanted balance of ${-(
-                                clients.get(socket.id)?.balance ?? 0
-                            )} </p>`,
-                            buttons: [
-                                createButton("CONTINUE WATCHING", () => {
-                                    close_func();
-                                }),
-                                createButton("PLAY ANOTHER GAME", () => {
-                                    close_func();
-                                    document.location.reload();
-                                }),
-                            ],
-                        }),
-                        "loosing"
-                    );
+                    notifyActionsRef.current.showDialog({
+                        title: "YOU LOST!",
+                        body: `you lost your money and lost the monopol with a wanted balance of ${-(clients.get(socket.id)?.balance ?? 0)}`,
+                        buttons: [
+                            { label: "CONTINUE WATCHING", onClick: () => { notifyActionsRef.current.dismissDialog(); } },
+                            { label: "PLAY ANOTHER GAME", onClick: () => { notifyActionsRef.current.dismissDialog(); document.location.reload(); } },
+                        ],
+                        soundtrack: "loosing",
+                    });
                 }
 
                 destroyPlayer(args.pJson.id);
@@ -388,31 +360,19 @@ function App({ socket, name, server }: { socket: Socket; name: string; server: S
                     if (x === 3) {
                         mainTheme.pause();
                         if (p.id === socket.id) {
-                            notifyRef.current?.dialog(
-                                (close_func, createButton) => ({
-                                    innerHTML: `<h3> YOU WON! </h3> <p> you have 3 sets! </p>`,
-                                    buttons: [
-                                        createButton("PLAY ANOTHER GAME", () => {
-                                            close_func();
-                                            document.location.reload();
-                                        }),
-                                    ],
-                                }),
-                                "winning"
-                            );
+                            notifyActionsRef.current.showDialog({
+                                title: "YOU WON!",
+                                body: "you have 3 sets!",
+                                buttons: [{ label: "PLAY ANOTHER GAME", onClick: () => { notifyActionsRef.current.dismissDialog(); document.location.reload(); } }],
+                                soundtrack: "winning",
+                            });
                         } else {
-                            notifyRef.current?.dialog(
-                                (close_func, createButton) => ({
-                                    innerHTML: `<h3> ${p.username} WON! </h3> <p> got 3 sets! </p>`,
-                                    buttons: [
-                                        createButton("PLAY ANOTHER GAME", () => {
-                                            close_func();
-                                            document.location.reload();
-                                        }),
-                                    ],
-                                }),
-                                "winning"
-                            );
+                            notifyActionsRef.current.showDialog({
+                                title: `${p.username} WON!`,
+                                body: "got 3 sets!",
+                                buttons: [{ label: "PLAY ANOTHER GAME", onClick: () => { notifyActionsRef.current.dismissDialog(); document.location.reload(); } }],
+                                soundtrack: "winning",
+                            });
                         }
                         return;
                     }
@@ -424,31 +384,19 @@ function App({ socket, name, server }: { socket: Socket; name: string; server: S
                         if (c === 4) {
                             mainTheme.pause();
                             if (p.id === socket.id) {
-                                notifyRef.current?.dialog(
-                                    (close_func, createButton) => ({
-                                        innerHTML: `<h3> YOU WON! </h3> <p> you have 4 railroads! </p>`,
-                                        buttons: [
-                                            createButton("PLAY ANOTHER GAME", () => {
-                                                close_func();
-                                                document.location.reload();
-                                            }),
-                                        ],
-                                    }),
-                                    "winning"
-                                );
+                                notifyActionsRef.current.showDialog({
+                                    title: "YOU WON!",
+                                    body: "you have 4 railroads!",
+                                    buttons: [{ label: "PLAY ANOTHER GAME", onClick: () => { notifyActionsRef.current.dismissDialog(); document.location.reload(); } }],
+                                    soundtrack: "winning",
+                                });
                             } else {
-                                notifyRef.current?.dialog(
-                                    (close_func, createButton) => ({
-                                        innerHTML: `<h3> ${p.username} WON! </h3> <p> got 4 railroads! </p>`,
-                                        buttons: [
-                                            createButton("PLAY ANOTHER GAME", () => {
-                                                close_func();
-                                                document.location.reload();
-                                            }),
-                                        ],
-                                    }),
-                                    "winning"
-                                );
+                                notifyActionsRef.current.showDialog({
+                                    title: `${p.username} WON!`,
+                                    body: "got 4 railroads!",
+                                    buttons: [{ label: "PLAY ANOTHER GAME", onClick: () => { notifyActionsRef.current.dismissDialog(); document.location.reload(); } }],
+                                    soundtrack: "winning",
+                                });
                             }
                             return;
                         }
@@ -523,7 +471,7 @@ function App({ socket, name, server }: { socket: Socket; name: string; server: S
                                     var time_till_free = 0;
                                     if (b === "buy") {
                                         if (getSettings() !== undefined && getSettings()!.notifications === true)
-                                            notifyRef.current?.message(
+                                            notifyActionsRef.current.showNotification(
                                                 `${(proprety?.price ?? 0) * 1} of money is deducted from the account`,
                                                 "info",
                                                 2,
@@ -564,7 +512,7 @@ function App({ socket, name, server }: { socket: Socket; name: string; server: S
 
                                         if (_info.state === 5) {
                                             if (getSettings() !== undefined && getSettings()!.notifications === true)
-                                                notifyRef.current?.message(
+                                                notifyActionsRef.current.showNotification(
                                                     `${proprety.ohousecost ?? 0} of money is deducted from the account`,
                                                     "info",
                                                     2,
@@ -575,7 +523,7 @@ function App({ socket, name, server }: { socket: Socket; name: string; server: S
                                             engineRef.current?.applyAnimation(1);
                                         } else {
                                             if (getSettings() !== undefined && getSettings()!.notifications === true)
-                                                notifyRef.current?.message(
+                                                notifyActionsRef.current.showNotification(
                                                     `${proprety.housecost ?? 0} of money is deducted from the account`,
                                                     "info",
                                                     2,
@@ -616,7 +564,7 @@ function App({ socket, name, server }: { socket: Socket; name: string; server: S
                                                         payment_ammount = (proprety?.multpliedrent ?? [0, 0, 0, 0, 0])[4] ?? 0;
                                                     }
                                                     if (getSettings() !== undefined && getSettings()!.notifications === true)
-                                                        notifyRef.current?.message(
+                                                        notifyActionsRef.current.showNotification(
                                                             `${payment_ammount} of money is deducted from the account`,
                                                             "info",
                                                             2,
@@ -663,7 +611,7 @@ function App({ socket, name, server }: { socket: Socket; name: string; server: S
                                         if (proprety?.id === "incometax") {
                                             localPlayer.balance -= 200;
                                             if (getSettings() !== undefined && getSettings()!.notifications === true)
-                                                notifyRef.current?.message(
+                                                notifyActionsRef.current.showNotification(
                                                     `${200} of money is deducted from the account`,
                                                     "info",
                                                     2,
@@ -683,7 +631,7 @@ function App({ socket, name, server }: { socket: Socket; name: string; server: S
                                         if (proprety?.id === "luxerytax") {
                                             localPlayer.balance -= 100;
                                             if (getSettings() !== undefined && getSettings()!.notifications === true)
-                                                notifyRef.current?.message(
+                                                notifyActionsRef.current.showNotification(
                                                     `${100} of money is deducted from the account`,
                                                     "info",
                                                     2,
@@ -702,7 +650,7 @@ function App({ socket, name, server }: { socket: Socket; name: string; server: S
                                         }
                                     } else if (b === "special_action") {
                                         if (getSettings() !== undefined && getSettings()!.notifications === true)
-                                            notifyRef.current?.message(
+                                            notifyActionsRef.current.showNotification(
                                                 `${(proprety?.price ?? 0) * 1} of money is deducted from the account`,
                                                 "info",
                                                 2,
@@ -780,7 +728,7 @@ function App({ socket, name, server }: { socket: Socket; name: string; server: S
                 } else {
                     x.balance -= 50;
                     if (x.id === socket.id && getSettings() !== undefined && getSettings()!.notifications === true)
-                        notifyRef.current?.message(`${50} of money is deducted from the account`, "info", 2, () => {}, false);
+                        notifyActionsRef.current.showNotification(`${50} of money is deducted from the account`, "info", 2, () => {}, false);
                     var audio = new Audio("./moneyminus.mp3");
                     audio.volume = ((getSettings()?.audio[1] ?? 100) / 100) * ((getSettings()?.audio[0] ?? 100) / 100);
                     audio.loop = false;
@@ -871,7 +819,7 @@ function App({ socket, name, server }: { socket: Socket; name: string; server: S
                     for (const p of other_players) {
                         p.balance += amnout;
                         if (p.id === socket.id && getSettings() !== undefined && getSettings()!.notifications === true) {
-                            notifyRef.current?.message(`${amnout} of money is added to the account`, "info", 2, () => {}, false);
+                            notifyActionsRef.current.showNotification(`${amnout} of money is added to the account`, "info", 2, () => {}, false);
                             var audio = new Audio("./moneyplus.mp3");
                             audio.volume = ((getSettings()?.audio[1] ?? 100) / 100) * ((getSettings()?.audio[0] ?? 100) / 100);
                             audio.loop = false;
@@ -934,7 +882,7 @@ function App({ socket, name, server }: { socket: Socket; name: string; server: S
                         xplayer.balance += c.amount ?? 0;
                         if (xplayer.id === socket.id) {
                             if (getSettings() !== undefined && getSettings()!.notifications === true)
-                                notifyRef.current?.message(`${c.amount ?? 0} of money is added to the account`, "info", 2, () => {}, false);
+                                notifyActionsRef.current.showNotification(`${c.amount ?? 0} of money is added to the account`, "info", 2, () => {}, false);
                             var audio = new Audio("./moneyplus.mp3");
                             audio.volume = ((getSettings()?.audio[1] ?? 100) / 100) * ((getSettings()?.audio[0] ?? 100) / 100);
                             audio.loop = false;
@@ -971,7 +919,7 @@ function App({ socket, name, server }: { socket: Socket; name: string; server: S
                         if (xplayer.id === socket.id) {
                             engineRef.current?.applyAnimation(1);
                             if (getSettings() !== undefined && getSettings()!.notifications === true)
-                                notifyRef.current?.message(`${c.amount ?? 0} of money is deducted from the account`, "info", 2, () => {}, false);
+                                notifyActionsRef.current.showNotification(`${c.amount ?? 0} of money is deducted from the account`, "info", 2, () => {}, false);
                             var audio = new Audio("./moneyminus.mp3");
                             audio.volume = ((getSettings()?.audio[1] ?? 100) / 100) * ((getSettings()?.audio[0] ?? 100) / 100);
                             audio.loop = false;
@@ -1033,7 +981,7 @@ function App({ socket, name, server }: { socket: Socket; name: string; server: S
                                         onResponse: (b, info) => {
                                             if (b === "buy") {
                                                 if (getSettings() !== undefined && getSettings()!.notifications === true)
-                                                    notifyRef.current?.message(
+                                                    notifyActionsRef.current.showNotification(
                                                         `${(proprety?.price ?? 0) * 1} of money is deducted from the account`,
                                                         "info",
                                                         2,
@@ -1071,7 +1019,7 @@ function App({ socket, name, server }: { socket: Socket; name: string; server: S
                                             } else if (b === "special_action") {
                                                 console.log(info);
                                                 if (getSettings() !== undefined && getSettings()!.notifications === true)
-                                                    notifyRef.current?.message(
+                                                    notifyActionsRef.current.showNotification(
                                                         `${(proprety?.price ?? 0) * 1} of money is deducted from the account`,
                                                         "info",
                                                         2,
@@ -1136,7 +1084,7 @@ function App({ socket, name, server }: { socket: Socket; name: string; server: S
                                                                     onDone: () => {
                                                                         payment_ammount = (l[0] + l[1]) * (c.rentmultiplier ?? 1);
                                                                         if (getSettings() !== undefined && getSettings()!.notifications === true)
-                                                                            notifyRef.current?.message(
+                                                                            notifyActionsRef.current.showNotification(
                                                                                 `${payment_ammount} of money is deducted from the account`,
                                                                                 "info",
                                                                                 2,
@@ -1186,7 +1134,7 @@ function App({ socket, name, server }: { socket: Socket; name: string; server: S
                                                                 payment_ammount = rents[count] * (c.rentmultiplier ?? 1);
 
                                                                 if (getSettings() !== undefined && getSettings()!.notifications === true)
-                                                                    notifyRef.current?.message(
+                                                                    notifyActionsRef.current.showNotification(
                                                                         `${payment_ammount} of money is deducted from the account`,
                                                                         "info",
                                                                         2,
@@ -1254,7 +1202,7 @@ which is ${payment_ammount}
                         `);
                         if (xplayer.id === socket.id && payment_ammount > 0) {
                             if (getSettings() !== undefined && getSettings()!.notifications === true)
-                                notifyRef.current?.message(`${payment_ammount} of money is deducted from the account`, "info", 2, () => {}, false);
+                                notifyActionsRef.current.showNotification(`${payment_ammount} of money is deducted from the account`, "info", 2, () => {}, false);
                             var audio = new Audio("./moneyminus.mp3");
                             audio.volume = ((getSettings()?.audio[1] ?? 100) / 100) * ((getSettings()?.audio[0] ?? 100) / 100);
                             audio.loop = false;
@@ -1287,18 +1235,12 @@ which is ${payment_ammount}
         }
         function socket_networkDisconnect() {
             mainTheme.pause();
-            notifyRef.current?.dialog(
-                (close_func, createButton) => ({
-                    innerHTML: `<h3> LOST CONNECTION </h3> <p> you were disconnected from the game </p>`,
-                    buttons: [
-                        createButton("PLAY ANOTHER GAME", () => {
-                            close_func();
-                            document.location.reload();
-                        }),
-                    ],
-                }),
-                "loosing"
-            );
+            notifyActionsRef.current.showDialog({
+                title: "LOST CONNECTION",
+                body: "you were disconnected from the game",
+                buttons: [{ label: "PLAY ANOTHER GAME", onClick: () => { notifyActionsRef.current.dismissDialog(); document.location.reload(); } }],
+                soundtrack: "loosing",
+            });
         }
 
         function socket_history(args: historyAction) {
@@ -1403,7 +1345,7 @@ which is ${payment_ammount}
                             const localPlayer = clients.get(socket.id);
                             if (localPlayer === undefined) return;
                             if (settings !== undefined && settings.notifications === true)
-                                notifyRef.current?.message(
+                                notifyActionsRef.current.showNotification(
                                     `${a} of money is deducted from the account for canceling mortgage`,
                                     "info",
                                     2,
@@ -1425,7 +1367,7 @@ which is ${payment_ammount}
                             const localPlayer = clients.get(socket.id);
                             if (localPlayer === undefined) return;
                             if (settings !== undefined && settings.notifications === true)
-                                notifyRef.current?.message(`${a} of money is deducted from the account for mortgage`, "info", 2, () => {}, false);
+                                notifyActionsRef.current.showNotification(`${a} of money is deducted from the account for mortgage`, "info", 2, () => {}, false);
                             localPlayer.balance -= a;
                             engineRef.current?.applyAnimation(1);
                             var audio = new Audio("./buying1.mp3");
@@ -1478,7 +1420,7 @@ which is ${payment_ammount}
                     selectedMode={selectedMode}
                 />
             </main>
-            <NotifyElement ref={notifyRef} />
+            <NotificationOverlay />
             <div id="server">
                 <main>
                     <div
