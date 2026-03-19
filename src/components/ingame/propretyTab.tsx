@@ -1,6 +1,6 @@
 import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
-import HouseIcon from "../../../public/h.png";
-import HotelIcon from "../../../public/ho.png";
+import HouseIcon from "../../assets/images/h.png";
+import HotelIcon from "../../assets/images/ho.png";
 import { translateGroup } from "./streetCard.tsx";
 import CardViewer from "./cardViewer.tsx";
 import monopolyJSON from "../../assets/monopoly.json";

@@ -1,10 +1,10 @@
-import PlayersIcon from "../../../public/players.png";
-import ChatIcon from "../../../public/chat.png";
-import NChatIcon from "../../../public/chat_new.png";
-import LeaveIcon from "../../../public/leave1.png";
-import PropretiesIcon from "../../../public/proprety.png";
-import SettingsIcon from "../../../public/settings.png";
-import MonopolyIcon from "../../../public/icon.png";
+import PlayersIcon from "../../assets/images/players.png";
+import ChatIcon from "../../assets/images/chat.png";
+import NChatIcon from "../../assets/images/chat_new.png";
+import LeaveIcon from "../../assets/images/leave1.png";
+import PropretiesIcon from "../../assets/images/proprety.png";
+import SettingsIcon from "../../assets/images/settings.png";
+import MonopolyIcon from "../../assets/images/icon.png";
 
 import { forwardRef, useState, useImperativeHandle, useEffect, useRef } from "react";
 import { Player } from "../../assets/player.ts";
