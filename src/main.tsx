@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Route, Routes, RouterProvider, createBrowserRo
 import Gallery from "./Pages/Galery/gallery.tsx";
 import Home from "./Pages/Home/home.tsx";
 import Users from "./Pages/Users/users.tsx";
+import { SettingsProvider } from "./contexts/SettingsContext.tsx";
 const router = createBrowserRouter([
     {
         path: "Monopoly",
@@ -20,7 +21,11 @@ const router = createBrowserRouter([
 ]);
 
 function App() {
-    return <RouterProvider router={router} />;
+    return (
+        <SettingsProvider>
+            <RouterProvider router={router} />
+        </SettingsProvider>
+    );
 }
 
 document.title = "Monopoly";
