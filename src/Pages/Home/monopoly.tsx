@@ -9,6 +9,9 @@ import { useNotifications } from "../../contexts/NotificationContext.tsx";
 import monopolyJSON from "../../assets/monopoly.json";
 import { MonopolyModes, historyAction, history, GameTrading, MonopolyMode } from "../../assets/types.ts";
 import { useSettings } from "../../contexts/SettingsContext.tsx";
+import Lobby from "../../components/ingame/Lobby.tsx";
+import CursorOverlay from "../../components/ingame/CursorOverlay.tsx";
+import ServerPanel from "../../components/ingame/ServerPanel.tsx";
 function App({ socket, name, server }: { socket: Socket; name: string; server: Server | undefined }) {
     const [clients, SetClients] = useState<Map<string, Player>>(new Map());
     const players = Array.from(clients.values());
@@ -1311,26 +1314,7 @@ which is ${payment_ammount}
 
     return gameStartedDisplay ? (
         <>
-            {globalSettings !== undefined && globalSettings.accessibility[3] ? (
-                <div className="cursors">
-                    {Array.from(clients.values())
-                        .filter((v) => v.id !== socket.id)
-                        .map((v, i) => {
-                            return (
-                                <img
-                                    src="./cursor.png"
-                                    style={{
-                                        translate: `${v.positions.x}px ${v.positions.y}px`,
-                                    }}
-                                    key={i}
-                                    className="cursor"
-                                />
-                            );
-                        })}
-                </div>
-            ) : (
-                <></>
-            )}
+            <CursorOverlay clients={clients} localId={socket.id} settings={globalSettings} />
             <main>
                 <MonopolyNav
                     currentTurn={currentId}
@@ -1421,170 +1405,30 @@ which is ${payment_ammount}
                 />
             </main>
             <NotificationOverlay />
-            <div id="server">
-                <main>
-                    <div
-                        className="upper"
-                        onClick={() => {
-                            const root = document.body.querySelector("#root") as HTMLDivElement;
-
-                            root.style.transform = "";
-                        }}
-                    >
-                        Server.exe
-                    </div>
-                    <div className="middle"></div>
-                    <div className="lower">
-                        <input type="text" />
-                    </div>
-                </main>
-                <footer
-                    onClick={() => {
+            {server && (
+                <ServerPanel
+                    server={server}
+                    onClose={() => {
                         const root = document.body.querySelector("#root") as HTMLDivElement;
-
                         root.style.transform = "";
                     }}
-                >
-                    <img src="icon.png" alt="" />
-                </footer>
-            </div>
+                />
+            )}
         </>
     ) : (
-        <div className="lobby">
-            <main>
-                <section>
-                    <div>
-                        <h3>Hello there {name}</h3>
-                        the players that are currently in the lobby are
-                        <div>
-                            {Array.from(clients.values()).map((v, i) => {
-                                return (
-                                    <p style={v.ready ? { backgroundColor: "#32a852" } : {}} className="lobby-players" key={i}>
-                                        {v.username}
-                                    </p>
-                                );
-                            })}
-                            <center>
-                                <button
-                                    disabled={gameStarted}
-                                    onClick={() => {
-                                        socket.emit("ready", {
-                                            ready: !imReady,
-                                        });
-                                        SetReady(!imReady);
-                                    }}
-                                >
-                                    {!imReady ? "Ready" : "Not Ready"}
-                                </button>
-                            </center>
-                        </div>
-                        <br />
-                    </div>
-                </section>
-                <div>
-                    {server === undefined ? (
-                        <>
-                            <p
-                                style={{
-                                    opacity: 0.5,
-                                    margin: 0,
-                                    textAlign: "center",
-                                    fontWeight: "100",
-                                }}
-                            >
-                                the server-admin is <br /> choosing the gamemode
-                            </p>
-                        </>
-                    ) : (
-                        <></>
-                    )}
-
-                    <div className="modes">
-                        <main>
-                            <h3>{selectedMode.Name}</h3>
-                            <table>
-                                <tr>
-                                    <td> Winning State:</td> <td>{selectedMode.WinningMode.toUpperCase()}</td>
-                                </tr>
-                                {/* <tr>
-                                    <td> Buying System:</td> <td>{selectedMode.BuyingSystem.toUpperCase()}</td>
-                                </tr> */}
-                                <tr>
-                                    <td>Trades: </td>
-                                    <td>{selectedMode.AllowDeals ? "ALLOWED" : "NOT-ALLOWED"}</td>
-                                </tr>
-                                <tr>
-                                    <td>Mortgage: </td>
-                                    <td>{selectedMode.mortageAllowed ? "ALLOWED" : "NOT-ALLOWED"}</td>
-                                </tr>
-                                <tr>
-                                    <td>Starting Cash: </td>
-                                    <td>{selectedMode.startingCash} M</td>
-                                </tr>
-                                <tr>
-                                    <td>Turn Timer: </td>
-                                    <td>
-                                        {selectedMode.turnTimer === undefined ||
-                                        (typeof selectedMode.turnTimer === "number" && selectedMode.turnTimer === 0)
-                                            ? "No Timer"
-                                            : JSON.stringify(selectedMode.turnTimer) + " Sec"}
-                                    </td>
-                                </tr>
-                            </table>
-                        </main>
-                        <div className="selecting-mde">
-                            {MonopolyModes.map((v, k) => {
-                                return (
-                                    <p
-                                        data-select={JSON.stringify(v) === JSON.stringify(selectedMode)}
-                                        key={k}
-                                        onClick={() => {
-                                            if (server !== undefined)
-                                                socket.emit("ready", {
-                                                    mode: v,
-                                                });
-                                        }}
-                                        data-disabled={server === undefined}
-                                    >
-                                        {v.Name}
-                                    </p>
-                                );
-                            })}
-                            <p
-                                data-select={selectedMode.Name === "Custom Mode"}
-                                data-disabled={server === undefined}
-                                onClick={() => {
-                                    const winstateChoice = window.prompt("Winning State\n1=last-standing\n2=monopols\n3=monopols & trains", "3");
-                                    // const buyingChoice = window.prompt("Buying System State\n1=following-order\n2=card-firsts\n3=everything", "3");
-                                    const allowTrade = window.confirm("Allow Trades");
-                                    const allowMortgage = window.confirm("Allow Mortgage");
-                                    const startingCash = window.prompt("Starting Cash", "1500");
-                                    const turnTimer = window.prompt("Turn Timer", "0");
-                                    const v = {
-                                        AllowDeals: allowTrade,
-                                        // BuyingSystem: buyingChoice === "2" ? "card-firsts" : buyingChoice === "3" ? "everything" : "following-order",
-                                        WinningMode:
-                                            winstateChoice === "2" ? "monopols" : winstateChoice === "3" ? "monopols & trains" : "last-standing",
-                                        Name: "Custom Mode",
-                                        mortageAllowed: allowMortgage,
-                                        startingCash: startingCash === null ? 1500 : parseInt(startingCash) ?? 1500,
-                                        turnTimer: turnTimer === null ? undefined : parseInt(turnTimer) ?? undefined,
-                                    } as MonopolyMode;
-                                    if (server !== undefined)
-                                        socket.emit("ready", {
-                                            mode: v,
-                                        });
-                                }}
-                            >
-                                Custom Mode
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </main>
-
-            <p id="floating-clock"></p>
-        </div>
+        <Lobby
+            name={name}
+            clients={clients}
+            socket={socket}
+            server={server}
+            imReady={imReady}
+            gameStarted={gameStarted}
+            selectedMode={selectedMode}
+            onToggleReady={() => {
+                socket.emit("ready", { ready: !imReady });
+                SetReady(!imReady);
+            }}
+        />
     );
 }
 
