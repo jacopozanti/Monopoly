@@ -1,11 +1,9 @@
-import { Server } from "../../assets/sockets";
-
 interface ServerPanelProps {
-	server: Server;
+	logs: Array<any[]>;
 	onClose: () => void;
 }
 
-export default function ServerPanel({ onClose }: ServerPanelProps) {
+export default function ServerPanel({ logs, onClose }: ServerPanelProps) {
 	return (
 		<div id="server">
 			<header>
@@ -19,7 +17,11 @@ export default function ServerPanel({ onClose }: ServerPanelProps) {
 						<button onClick={onClose}>X</button>
 					</div>
 				</div>
-				<div className="middle"></div>
+				<div className="middle">
+					{logs.map((v, i) => (
+						<p key={i}>{v.join("\t")}</p>
+					))}
+				</div>
 				<div className="lower">
 					<input disabled />
 				</div>

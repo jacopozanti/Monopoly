@@ -29,6 +29,8 @@ function App({ socket, name, server }: { socket: Socket; name: string; server: S
     const [histories, SetHistories] = useState<Array<historyAction>>([]);
 
     const [currentTrade, setTrade] = useState<GameTrading | boolean | undefined>(undefined);
+    const [serverLogs, setServerLogs] = useState<Array<any[]>>([]);
+    const [countdownValue, setCountdownValue] = useState<number | null>(null);
 
     useEffect(() => {
         if (!gameStartedDisplay) return;
@@ -64,13 +66,7 @@ function App({ socket, name, server }: { socket: Socket; name: string; server: S
     );
     if (server !== undefined) {
         server.RenderLogs((array) => {
-            try {
-                const x = document.body.querySelector("#server main div.middle") as HTMLDivElement;
-                x.innerHTML = "";
-                for (const v of array) {
-                    x.innerHTML += `<p> ${v.join("\t")} </p>`;
-                }
-            } catch {}
+            setServerLogs([...array]);
         });
     }
     useEffect(() => {
@@ -237,17 +233,13 @@ function App({ socket, name, server }: { socket: Socket; name: string; server: S
         };
         const socket_StartGame = () => {
             SetGameStarted(true);
-            function A(n: number) {
-                const p = document.querySelector("p#floating-clock") as HTMLParagraphElement;
-                p.innerHTML = `${n}`;
-                p.className = "clocking";
-            }
-            A(3);
+            setCountdownValue(3);
             setTimeout(() => {
-                A(2);
+                setCountdownValue(2);
                 setTimeout(() => {
-                    A(1);
+                    setCountdownValue(1);
                     setTimeout(() => {
+                        setCountdownValue(null);
                         SetGameStartedDisplay(true);
                     }, 1000);
                 }, 1000);
@@ -1407,7 +1399,7 @@ which is ${payment_ammount}
             <NotificationOverlay />
             {server && (
                 <ServerPanel
-                    server={server}
+                    logs={serverLogs}
                     onClose={() => {
                         const root = document.body.querySelector("#root") as HTMLDivElement;
                         root.style.transform = "";
@@ -1424,6 +1416,7 @@ which is ${payment_ammount}
             imReady={imReady}
             gameStarted={gameStarted}
             selectedMode={selectedMode}
+            countdownValue={countdownValue}
             onToggleReady={() => {
                 socket.emit("ready", { ready: !imReady });
                 SetReady(!imReady);
