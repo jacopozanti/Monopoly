@@ -43,6 +43,7 @@ export default function Home() {
     // Gameplay stuff
     const [name, SetName] = useState<string>("");
     const [addr, SetAddress] = useState<string>("");
+    const [serverBtnText, setServerBtnText] = useState("Run Server");
 
     // Account stuff
     // const [firebase, setFirebase] = useState<FirebaseApp>();
@@ -430,7 +431,7 @@ export default function Home() {
                                             }}
                                             onClick={(e) => {
                                                 e.currentTarget.disabled = true;
-                                                e.currentTarget.innerHTML = "Starting Server";
+                                                setServerBtnText("Starting Server");
                                                 onlineServer(serverPCount, (host, server) => {
                                                     server.code = host;
                                                     SetAddress(host);
@@ -441,7 +442,7 @@ export default function Home() {
                                                 });
                                             }}
                                         >
-                                            Run Server
+                                            {serverBtnText}
                                         </button>
                                     </center>
                                 </>

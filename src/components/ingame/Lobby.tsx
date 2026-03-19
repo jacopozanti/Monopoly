@@ -11,6 +11,7 @@ interface LobbyProps {
 	gameStarted: boolean;
 	selectedMode: MonopolyMode;
 	onToggleReady: () => void;
+	countdownValue: number | null;
 }
 
 export default function Lobby({
@@ -22,6 +23,7 @@ export default function Lobby({
 	gameStarted,
 	selectedMode,
 	onToggleReady,
+	countdownValue,
 }: LobbyProps) {
 	return (
 		<div className="lobby">
@@ -147,7 +149,9 @@ export default function Lobby({
 				</div>
 			</main>
 
-			<p id="floating-clock"></p>
+			{countdownValue !== null && (
+				<p id="floating-clock" className="clocking">{countdownValue}</p>
+			)}
 		</div>
 	);
 }
