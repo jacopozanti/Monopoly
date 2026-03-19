@@ -2,8 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { Server, Socket } from "../../assets/sockets.ts";
 import { Player, PlayerJSON } from "../../assets/player.ts";
 import "../../monopoly.css";
-import MonopolyNav, { MonopolyNavRef } from "../../components/ingame/nav.tsx";
-import MonopolyGame, { MonopolyGameRef } from "../../components/ingame/game.tsx";
+import MonopolyNav, { type MonopolyNavApi } from "../../components/ingame/nav.tsx";
+import MonopolyGame, { type MonopolyGameApi } from "../../components/ingame/game.tsx";
 import NotificationOverlay from "../../components/NotificationOverlay.tsx";
 import { useNotifications } from "../../contexts/NotificationContext.tsx";
 import monopolyJSON from "../../assets/monopoly.json";
@@ -51,8 +51,8 @@ function App({ socket, name, server }: { socket: Socket; name: string; server: S
     const notifyActionsRef = useRef({ showNotification, showDialog, dismissDialog });
     notifyActionsRef.current = { showNotification, showDialog, dismissDialog };
 
-    const engineRef = useRef<MonopolyGameRef>(null);
-    const navRef = useRef<MonopolyNavRef>(null);
+    const engineRef = useRef<MonopolyGameApi | null>(null);
+    const navRef = useRef<MonopolyNavApi | null>(null);
 
     const propretyMap = new Map(
         monopolyJSON.properties.map((obj) => {
@@ -1334,7 +1334,7 @@ which is ${payment_ammount}
             <main>
                 <MonopolyNav
                     currentTurn={currentId}
-                    ref={navRef}
+                    onReady={(api) => { navRef.current = api; }}
                     name={name}
                     socket={socket}
                     players={players}
@@ -1392,7 +1392,7 @@ which is ${payment_ammount}
                     clickedOnBoard={(a) => {
                         navRef.current?.clickedOnBoard(a);
                     }}
-                    ref={engineRef}
+                    onReady={(api) => { engineRef.current = api; }}
                     socket={socket}
                     players={Array.from(clients.values())}
                     myTurn={currentId === socket.id}

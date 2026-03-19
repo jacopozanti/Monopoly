@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useImperativeHandle, useState } from "react";
+import { useEffect, useState } from "react";
 import RollIcon from "../../assets/images/roll.png";
 import HouseIcon from "../../assets/images/h.png";
 import HotelIcon from "../../assets/images/ho.png";
@@ -13,18 +13,7 @@ import { useSettings } from "../../contexts/SettingsContext.tsx";
 import DicePanel from "./DicePanel.tsx";
 import BoardCell from "./BoardCell.tsx";
 import { BOARD_POSITIONS } from "../../data/boardPositions.ts";
-interface MonopolyGameProps {
-    players: Array<Player>;
-    myTurn: boolean;
-    socket: Socket;
-    clickedOnBoard: (a: number) => void;
-    tradeObj?: undefined | GameTrading | boolean;
-    tradeApi: {
-        onSelectPlayer: (pId: string) => void;
-    };
-    selectedMode: MonopolyMode;
-}
-export interface MonopolyGameRef {
+export interface MonopolyGameApi {
     diceResults: (args: { l: [number, number]; time: number; onDone: () => void }) => void;
     freeDice: () => void;
     setStreet: (args: {
@@ -52,11 +41,26 @@ export interface MonopolyGameRef {
     showJailsButtons: (is_card: boolean) => void;
 }
 
+// Keep the old name as alias for backwards compatibility
+export type MonopolyGameRef = MonopolyGameApi;
+
+interface MonopolyGameProps {
+    players: Array<Player>;
+    myTurn: boolean;
+    socket: Socket;
+    clickedOnBoard: (a: number) => void;
+    tradeObj?: undefined | GameTrading | boolean;
+    tradeApi: {
+        onSelectPlayer: (pId: string) => void;
+    };
+    selectedMode: MonopolyMode;
+    onReady?: (api: MonopolyGameApi) => void;
+}
+
 export interface g_SpecialAction {}
 export type g_Buy = 0 | 1 | 2 | 3 | 4 | "h";
 
-// Create the component with forwardRef
-const MonopolyGame = forwardRef<MonopolyGameRef, MonopolyGameProps>((prop, ref) => {
+function MonopolyGame(prop: MonopolyGameProps) {
     const propretyMap = new Map(
         monopolyJSON.properties.map((obj) => {
             return [obj.posistion ?? 0, obj];
@@ -107,7 +111,7 @@ const MonopolyGame = forwardRef<MonopolyGameRef, MonopolyGameProps>((prop, ref) 
         audio.play();
     }
 
-    useImperativeHandle(ref, () => ({
+    const gameApi: MonopolyGameApi = {
         diceResults: (args) => {
             SetDiceValues(args.l);
             SetShowDice(true);
@@ -433,7 +437,12 @@ const MonopolyGame = forwardRef<MonopolyGameRef, MonopolyGameProps>((prop, ref) 
                 SetTimer(0);
             };
         },
-    }));
+    };
+
+    // Register API with parent via onReady callback
+    useEffect(() => {
+        prop.onReady?.(gameApi);
+    }, []);
 
     // Board cell click/hover is handled by BoardCell component props
     // Wheel handler is attached inline on the board div
@@ -983,5 +992,5 @@ const MonopolyGame = forwardRef<MonopolyGameRef, MonopolyGameProps>((prop, ref) 
             </div>
         </>
     );
-});
+}
 export default MonopolyGame;

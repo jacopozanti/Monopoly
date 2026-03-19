@@ -1,4 +1,4 @@
-import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
+import { useState, useEffect } from "react";
 import HouseIcon from "../../assets/images/h.png";
 import HotelIcon from "../../assets/images/ho.png";
 import { translateGroup } from "./streetCard.tsx";
@@ -15,11 +15,16 @@ interface PropretyTabProps {
     };
     allowMortgage: boolean;
 }
-export interface PropretyTabRef {
+export interface PropretyTabApi {
     clickedOnBoard: (a: number) => void;
 }
+export type PropretyTabRef = PropretyTabApi;
 
-const propretyTab = forwardRef<PropretyTabRef, PropretyTabProps>((props, ref) => {
+interface PropretyTabPropsExt extends PropretyTabProps {
+    onReady?: (api: PropretyTabApi) => void;
+}
+
+function PropretyTab(props: PropretyTabPropsExt) {
     const propretyMap = new Map(
         monopolyJSON.properties.map((obj) => {
             return [obj.posistion ?? 0, obj];
@@ -71,14 +76,18 @@ const propretyTab = forwardRef<PropretyTabRef, PropretyTabProps>((props, ref) =>
 
     const localPlayer = props.players.filter((v) => v.id === props.socket.id)[0];
     if (localPlayer === undefined) return <>Could not read local player!</>;
-    useImperativeHandle(ref, () => ({
+    const propretyApi: PropretyTabApi = {
         clickedOnBoard(a) {
             SetLookCard(-1);
             SetSearch("");
             SetSearchList([]);
             SetCardPos(a);
         },
-    }));
+    };
+
+    useEffect(() => {
+        props.onReady?.(propretyApi);
+    }, []);
 
     const [currentCardPosition, SetCardPos] = useState<number>(-1);
     const [searchString, SetSearch] = useState<string>("");
@@ -226,5 +235,5 @@ const propretyTab = forwardRef<PropretyTabRef, PropretyTabProps>((props, ref) =>
             </div>
         </>
     );
-});
-export default propretyTab;
+}
+export default PropretyTab;
